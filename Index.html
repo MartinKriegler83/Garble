@@ -1,0 +1,433 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#2C3BFF">
+<title>Garble</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --blue: #2C3BFF;
+    --blue-deep: #1B26B8;
+    --white: #FFFFFF;
+    --pink: #FF4FA3;
+    --ink: #0E1240;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--blue);
+    color: var(--white);
+    font-family: "Bricolage Grotesque", system-ui, sans-serif;
+    font-weight: 500;
+    font-size: 17px;
+    line-height: 1.35;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  :focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
+
+  .app {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    padding: max(20px, env(safe-area-inset-top)) 22px max(24px, env(safe-area-inset-bottom));
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  .top { display: flex; align-items: baseline; justify-content: space-between; }
+  .wordmark { font-size: 30px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+  .how-btn { background: none; border: none; padding: 6px 0; opacity: .8; font-size: 15px; text-decoration: underline; text-underline-offset: 3px; }
+
+  .stage { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 26px; padding: 30px 0; }
+
+  h1 {
+    font-size: clamp(38px, 11vw, 56px);
+    font-weight: 800;
+    line-height: .95;
+    letter-spacing: -0.035em;
+    margin: 0;
+  }
+  .lead { font-size: 18px; opacity: .85; margin: 0; max-width: 32ch; }
+
+  /* record button */
+  .rec-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .rec {
+    width: 132px; height: 132px; border-radius: 50%;
+    background: var(--white);
+    border: none;
+    display: grid; place-items: center;
+    position: relative;
+    transition: transform .12s ease;
+  }
+  .rec:active { transform: scale(.94); }
+  .rec .core { width: 46px; height: 46px; border-radius: 50%; background: var(--pink); transition: border-radius .2s ease, transform .2s ease; }
+  .rec[data-on="true"] .core { border-radius: 8px; transform: scale(.8); }
+  .rec[data-on="true"]::after {
+    content: ""; position: absolute; inset: -10px; border-radius: 50%;
+    border: 3px solid var(--pink);
+    animation: pulse 1.1s ease-out infinite;
+  }
+  @keyframes pulse { from { transform: scale(.92); opacity: .9 } to { transform: scale(1.18); opacity: 0 } }
+  .rec-hint { font-size: 15px; opacity: .8; min-height: 1.4em; font-variant-numeric: tabular-nums; }
+
+  /* effects */
+  .effects { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .fx {
+    border: 2px solid rgba(255,255,255,.45);
+    background: transparent;
+    border-radius: 16px;
+    padding: 14px 14px 12px;
+    text-align: start;
+    line-height: 1.2;
+  }
+  .fx b { display: block; font-weight: 800; font-size: 18px; letter-spacing: -0.02em; }
+  .fx span { font-size: 13.5px; opacity: .75; }
+  .fx[aria-pressed="true"] { background: var(--white); color: var(--blue-deep); border-color: var(--white); }
+
+  .waves { height: 54px; display: flex; align-items: center; gap: 3px; }
+  .waves i { flex: 1; background: var(--white); border-radius: 2px; min-height: 3px; opacity: .9; }
+
+  .actions { display: flex; flex-direction: column; gap: 10px; }
+  .big {
+    width: 100%;
+    padding: 18px 20px;
+    border-radius: 18px;
+    border: none;
+    background: var(--pink);
+    color: var(--white);
+    font-size: 19px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  .big.ghost { background: transparent; border: 2px solid rgba(255,255,255,.5); font-weight: 500; font-size: 17px; }
+  .big.white { background: var(--white); color: var(--blue-deep); }
+  .big:disabled { opacity: .45; }
+  .row { display: flex; gap: 10px; }
+  .row .big { flex: 1; }
+
+  .step-tag { font-size: 14px; opacity: .75; margin: 0; }
+
+  .notice {
+    background: rgba(14,18,64,.45);
+    border-radius: 14px;
+    padding: 14px 16px;
+    font-size: 15px;
+    line-height: 1.4;
+  }
+  .notice a { color: var(--white); }
+
+  /* how-to sheet */
+  .sheet {
+    position: fixed; inset: 0;
+    background: var(--ink);
+    padding: max(24px, env(safe-area-inset-top)) 24px 40px;
+    transform: translateY(100%);
+    transition: transform .3s cubic-bezier(.2,.8,.2,1);
+    overflow-y: auto;
+    z-index: 10;
+  }
+  .sheet[data-open="true"] { transform: none; }
+  .sheet h2 { font-size: 34px; font-weight: 800; letter-spacing: -0.03em; margin: 0 0 20px; line-height: 1; }
+  .sheet ol { padding-left: 22px; margin: 0 0 26px; font-size: 18px; }
+  .sheet li { margin-bottom: 12px; }
+  .sheet li::marker { color: var(--pink); font-weight: 800; }
+  .hidden { display: none !important; }
+  @media (prefers-reduced-motion: reduce) { *, *::after { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="app">
+  <div class="top">
+    <div class="wordmark">Garble</div>
+    <button class="how-btn" id="howOpen" data-i18n="how"></button>
+  </div>
+
+  <!-- Screen 1: record -->
+  <section class="stage" id="s1">
+    <h1 data-i18n="h1a"></h1>
+    <p class="lead" data-i18n="lead1"></p>
+    <div class="rec-wrap">
+      <button class="rec" id="recBtn" data-on="false" aria-label="Aufnehmen"><span class="core"></span></button>
+      <div class="rec-hint" id="recHint"></div>
+    </div>
+    <div class="notice hidden" id="micNotice"></div>
+  </section>
+
+  <!-- Screen 2: choose & share distorted -->
+  <section class="stage hidden" id="s2">
+    <p class="step-tag" id="s2tag">Aufgenommen · 0,0 s</p>
+    <h1 data-i18n="h1b"></h1>
+    <div class="effects" id="effects"></div>
+    <div class="waves" id="waves" aria-hidden="true"></div>
+    <div class="actions">
+      <button class="big white" id="previewBtn" data-i18n="listen"></button>
+      <button class="big" id="shareDistBtn" data-i18n="sendDist"></button>
+      <button class="big ghost" id="redoBtn" data-i18n="redo"></button>
+    </div>
+  </section>
+
+  <!-- Screen 3: reveal -->
+  <section class="stage hidden" id="s3">
+    <p class="step-tag" data-i18n="sent"></p>
+    <h1 data-i18n="h1c"></h1>
+    <p class="lead" data-i18n="lead3"></p>
+    <div class="actions">
+      <button class="big" id="shareOrigBtn" data-i18n="sendOrig"></button>
+      <button class="big ghost" id="againBtn" data-i18n="again"></button>
+    </div>
+  </section>
+</div>
+
+<div class="sheet" id="howSheet" data-open="false" role="dialog" aria-label="How Garble works">
+  <h2 data-i18n="howTitle"></h2>
+  <ol id="howList"></ol>
+  <button class="big white" id="howClose" data-i18n="gotit"></button>
+</div>
+
+<script>
+
+/* ---------- i18n ---------- */
+const STR = {"en":{"how":"How does it work?","h1a":"Say something.<br>We wreck it.","lead1":"Your friends have to guess what you said.","tapRec":"Tap to record","tapStop":"Tap to stop","busy":"Wrecking…","tooShort":"Too short. At least one word.","cantRead":"Could not read the recording. Try again.","recorded":"Recorded","h1b":"How wrecked?","listen":"Listen","sendDist":"Send the wrecked one to the chat","redo":"Record again","sent":"Sent.","h1c":"Let them guess.","lead3":"Once the chat is full of nonsense, send the answer.","sendOrig":"Send the answer","again":"New round","howTitle":"How it works.","gotit":"Got it","steps":["Record a voice note. One sentence is enough.","Let it get wrecked.","Send the wrecked version to the group chat.","Everyone guesses in the chat.","Send the answer afterwards. Wrong guesses pay."],"micErr":"No microphone access. This page needs a real https address — in a preview or opened from a file, the phone blocks the mic.","shareDist":"What did I say? 👀","shareOrig":"The answer 🎤","fx":{"shuffle":["Chopped","Cut to pieces, reshuffled."],"reverse":["Backwards","The whole thing in reverse."],"demon":["Demon","Deep, slow, creepy."],"robot":["Robot","Metallic and crumbled."],"random":["Random","Even you won't know which."]}},"de":{"how":"Wie geht das?","h1a":"Sag was.<br>Wir machen es kaputt.","lead1":"Deine Freunde müssen raten, was du gesagt hast.","tapRec":"Tippen zum Aufnehmen","tapStop":"Tippen zum Stoppen","busy":"Wird zerlegt…","tooShort":"Zu kurz. Sag wenigstens ein Wort.","cantRead":"Konnte die Aufnahme nicht lesen. Nochmal.","recorded":"Aufgenommen","h1b":"Wie kaputt?","listen":"Anhören","sendDist":"Verzerrt in den Chat schicken","redo":"Nochmal aufnehmen","sent":"Verschickt.","h1c":"Lass sie raten.","lead3":"Wenn genug Unsinn im Chat steht, schickst du die Auflösung.","sendOrig":"Auflösung schicken","again":"Neue Runde","howTitle":"So geht das.","gotit":"Verstanden","steps":["Sprachnachricht aufnehmen. Ein Satz reicht.","Kaputtmachen lassen.","Die kaputte Version in den Gruppenchat schicken.","Alle raten im Chat.","Auflösung hinterher schicken. Wer daneben lag, zahlt."],"micErr":"Kein Mikrofon-Zugriff. Diese Seite braucht dafür eine echte https-Adresse — in einer Vorschau oder aus einer Datei heraus blockiert das Handy das Mikro.","shareDist":"Was hab ich gesagt? 👀","shareOrig":"Auflösung 🎤","fx":{"shuffle":["Zerhackt","In Stücke geschnitten, neu gemischt."],"reverse":["Rückwärts","Das ganze Ding von hinten."],"demon":["Dämon","Tief, langsam, unheimlich."],"robot":["Roboter","Metallisch und zerbröselt."],"random":["Zufall","Du erfährst selbst nicht, was."]}},"es":{"how":"¿Cómo funciona?","h1a":"Di algo.<br>Lo destrozamos.","lead1":"Tus amigos tienen que adivinar qué dijiste.","tapRec":"Toca para grabar","tapStop":"Toca para parar","busy":"Destrozando…","tooShort":"Muy corto. Al menos una palabra.","cantRead":"No se pudo leer la grabación. Otra vez.","recorded":"Grabado","h1b":"¿Cuánto destrozo?","listen":"Escuchar","sendDist":"Enviar la versión destrozada al chat","redo":"Grabar de nuevo","sent":"Enviado.","h1c":"Que adivinen.","lead3":"Cuando el chat esté lleno de tonterías, manda la respuesta.","sendOrig":"Enviar la respuesta","again":"Nueva ronda","howTitle":"Así funciona.","gotit":"Entendido","steps":["Graba una nota de voz. Con una frase basta.","Deja que la destrocemos.","Manda la versión destrozada al grupo.","Todos adivinan en el chat.","Manda la respuesta después. Quien falle, paga."],"micErr":"Sin acceso al micrófono. Esta página necesita una dirección https real.","shareDist":"¿Qué dije? 👀","shareOrig":"La respuesta 🎤","fx":{"shuffle":["Troceado","Cortado en trozos y mezclado."],"reverse":["Al revés","Todo de atrás hacia adelante."],"demon":["Demonio","Grave, lento, inquietante."],"robot":["Robot","Metálico y desmenuzado."],"random":["Aleatorio","Ni tú sabrás cuál."]}},"fr":{"how":"Comment ça marche ?","h1a":"Dis un truc.<br>On le massacre.","lead1":"Tes amis doivent deviner ce que tu as dit.","tapRec":"Touche pour enregistrer","tapStop":"Touche pour arrêter","busy":"Massacre en cours…","tooShort":"Trop court. Au moins un mot.","cantRead":"Enregistrement illisible. Réessaie.","recorded":"Enregistré","h1b":"Massacré comment ?","listen":"Écouter","sendDist":"Envoyer la version massacrée au groupe","redo":"Réenregistrer","sent":"Envoyé.","h1c":"Laisse-les deviner.","lead3":"Quand le groupe déborde de bêtises, envoie la réponse.","sendOrig":"Envoyer la réponse","again":"Nouvelle manche","howTitle":"Comment ça marche.","gotit":"Compris","steps":["Enregistre un vocal. Une phrase suffit.","Laisse-nous le massacrer.","Envoie la version massacrée au groupe.","Tout le monde devine dans le chat.","Envoie la réponse ensuite. Qui se trompe paie."],"micErr":"Pas d'accès au micro. Cette page a besoin d'une vraie adresse https.","shareDist":"J'ai dit quoi ? 👀","shareOrig":"La réponse 🎤","fx":{"shuffle":["Haché","Coupé en morceaux, mélangé."],"reverse":["À l'envers","Tout depuis la fin."],"demon":["Démon","Grave, lent, glauque."],"robot":["Robot","Métallique et émietté."],"random":["Hasard","Même toi tu ne sauras pas."]}},"pt":{"how":"Como funciona?","h1a":"Diz algo.<br>A gente estraga.","lead1":"Seus amigos têm que adivinhar o que você disse.","tapRec":"Toque para gravar","tapStop":"Toque para parar","busy":"Estragando…","tooShort":"Curto demais. Pelo menos uma palavra.","cantRead":"Não deu para ler a gravação. De novo.","recorded":"Gravado","h1b":"Estragar quanto?","listen":"Ouvir","sendDist":"Mandar a versão estragada pro grupo","redo":"Gravar de novo","sent":"Enviado.","h1c":"Deixa eles adivinharem.","lead3":"Quando o grupo estiver cheio de bobagem, manda a resposta.","sendOrig":"Mandar a resposta","again":"Nova rodada","howTitle":"Como funciona.","gotit":"Entendi","steps":["Grave um áudio. Uma frase basta.","Deixe a gente estragar.","Mande a versão estragada pro grupo.","Todo mundo adivinha no chat.","Mande a resposta depois. Quem errou, paga."],"micErr":"Sem acesso ao microfone. Esta página precisa de um endereço https de verdade.","shareDist":"O que eu disse? 👀","shareOrig":"A resposta 🎤","fx":{"shuffle":["Picado","Cortado em pedaços e embaralhado."],"reverse":["Ao contrário","Tudo de trás pra frente."],"demon":["Demônio","Grave, lento, sinistro."],"robot":["Robô","Metálico e esfarelado."],"random":["Aleatório","Nem você vai saber qual."]}},"it":{"how":"Come funziona?","h1a":"Di' qualcosa.<br>Lo distruggiamo.","lead1":"I tuoi amici devono indovinare cosa hai detto.","tapRec":"Tocca per registrare","tapStop":"Tocca per fermare","busy":"Distruzione in corso…","tooShort":"Troppo corto. Almeno una parola.","cantRead":"Registrazione illeggibile. Riprova.","recorded":"Registrato","h1b":"Quanto distrutto?","listen":"Ascolta","sendDist":"Manda la versione distrutta in chat","redo":"Registra di nuovo","sent":"Inviato.","h1c":"Falli indovinare.","lead3":"Quando la chat è piena di sciocchezze, manda la risposta.","sendOrig":"Manda la risposta","again":"Nuovo round","howTitle":"Come funziona.","gotit":"Capito","steps":["Registra un vocale. Basta una frase.","Lascia che lo distruggiamo.","Manda la versione distrutta nel gruppo.","Tutti indovinano in chat.","Manda la risposta dopo. Chi sbaglia paga."],"micErr":"Nessun accesso al microfono. Questa pagina ha bisogno di un vero indirizzo https.","shareDist":"Cosa ho detto? 👀","shareOrig":"La risposta 🎤","fx":{"shuffle":["Tritato","Tagliato a pezzi e mescolato."],"reverse":["Al contrario","Tutto dalla fine."],"demon":["Demone","Grave, lento, inquietante."],"robot":["Robot","Metallico e sbriciolato."],"random":["Casuale","Nemmeno tu saprai quale."]}},"nl":{"how":"Hoe werkt het?","h1a":"Zeg iets.<br>Wij slopen het.","lead1":"Je vrienden moeten raden wat je zei.","tapRec":"Tik om op te nemen","tapStop":"Tik om te stoppen","busy":"Aan het slopen…","tooShort":"Te kort. Minstens één woord.","cantRead":"Opname niet leesbaar. Probeer opnieuw.","recorded":"Opgenomen","h1b":"Hoe gesloopt?","listen":"Luisteren","sendDist":"Gesloopte versie naar de chat sturen","redo":"Opnieuw opnemen","sent":"Verstuurd.","h1c":"Laat ze raden.","lead3":"Als de chat vol onzin staat, stuur je het antwoord.","sendOrig":"Antwoord sturen","again":"Nieuwe ronde","howTitle":"Zo werkt het.","gotit":"Begrepen","steps":["Neem een spraakbericht op. Eén zin is genoeg.","Laat het slopen.","Stuur de gesloopte versie naar de groep.","Iedereen raadt in de chat.","Stuur daarna het antwoord. Wie fout zat, betaalt."],"micErr":"Geen microfoontoegang. Deze pagina heeft een echt https-adres nodig.","shareDist":"Wat zei ik? 👀","shareOrig":"Het antwoord 🎤","fx":{"shuffle":["Gehakt","In stukken geknipt en gehusseld."],"reverse":["Achterstevoren","Alles van achter naar voren."],"demon":["Demon","Laag, traag, eng."],"robot":["Robot","Metalig en verkruimeld."],"random":["Willekeurig","Zelfs jij weet niet welke."]}},"pl":{"how":"Jak to działa?","h1a":"Powiedz coś.<br>Zniszczymy to.","lead1":"Znajomi muszą zgadnąć, co powiedziałeś.","tapRec":"Dotknij, by nagrać","tapStop":"Dotknij, by zatrzymać","busy":"Niszczenie…","tooShort":"Za krótko. Chociaż jedno słowo.","cantRead":"Nie udało się odczytać nagrania. Jeszcze raz.","recorded":"Nagrano","h1b":"Jak bardzo zniszczyć?","listen":"Posłuchaj","sendDist":"Wyślij zniszczoną wersję na czat","redo":"Nagraj ponownie","sent":"Wysłano.","h1c":"Niech zgadują.","lead3":"Gdy czat jest pełen bzdur, wyślij odpowiedź.","sendOrig":"Wyślij odpowiedź","again":"Nowa runda","howTitle":"Jak to działa.","gotit":"Jasne","steps":["Nagraj wiadomość głosową. Jedno zdanie wystarczy.","Pozwól nam to zniszczyć.","Wyślij zniszczoną wersję do grupy.","Wszyscy zgadują na czacie.","Potem wyślij odpowiedź. Kto się pomylił, płaci."],"micErr":"Brak dostępu do mikrofonu. Ta strona potrzebuje prawdziwego adresu https.","shareDist":"Co powiedziałem? 👀","shareOrig":"Odpowiedź 🎤","fx":{"shuffle":["Posiekane","Pocięte i wymieszane."],"reverse":["Od tyłu","Wszystko od końca."],"demon":["Demon","Nisko, wolno, strasznie."],"robot":["Robot","Metalicznie i pokruszone."],"random":["Losowo","Nawet ty nie wiesz, które."]}},"ru":{"how":"Как это работает?","h1a":"Скажи что-нибудь.<br>Мы это испортим.","lead1":"Друзья должны угадать, что ты сказал.","tapRec":"Нажми, чтобы записать","tapStop":"Нажми, чтобы остановить","busy":"Портим…","tooShort":"Слишком коротко. Хотя бы одно слово.","cantRead":"Не удалось прочитать запись. Ещё раз.","recorded":"Записано","h1b":"Насколько испортить?","listen":"Послушать","sendDist":"Отправить испорченную версию в чат","redo":"Записать заново","sent":"Отправлено.","h1c":"Пусть угадывают.","lead3":"Когда чат заполнится чушью, отправь ответ.","sendOrig":"Отправить ответ","again":"Новый раунд","howTitle":"Как это работает.","gotit":"Понятно","steps":["Запиши голосовое. Одной фразы хватит.","Дай нам его испортить.","Отправь испорченную версию в группу.","Все угадывают в чате.","Потом отправь ответ. Кто ошибся — платит."],"micErr":"Нет доступа к микрофону. Странице нужен настоящий https-адрес.","shareDist":"Что я сказал? 👀","shareOrig":"Ответ 🎤","fx":{"shuffle":["Нарезка","Порезано на куски и перемешано."],"reverse":["Задом наперёд","Всё с конца."],"demon":["Демон","Низко, медленно, жутко."],"robot":["Робот","Металлически и раскрошено."],"random":["Случайно","Даже ты не узнаешь, что."]}},"uk":{"how":"Як це працює?","h1a":"Скажи щось.<br>Ми це зіпсуємо.","lead1":"Друзі мають вгадати, що ти сказав.","tapRec":"Торкнись, щоб записати","tapStop":"Торкнись, щоб зупинити","busy":"Псуємо…","tooShort":"Занадто коротко. Хоча б одне слово.","cantRead":"Не вдалося прочитати запис. Ще раз.","recorded":"Записано","h1b":"Наскільки зіпсувати?","listen":"Послухати","sendDist":"Надіслати зіпсовану версію в чат","redo":"Записати знову","sent":"Надіслано.","h1c":"Хай вгадують.","lead3":"Коли чат заповниться дурницями, надішли відповідь.","sendOrig":"Надіслати відповідь","again":"Новий раунд","howTitle":"Як це працює.","gotit":"Зрозуміло","steps":["Запиши голосове. Однієї фрази досить.","Дай нам його зіпсувати.","Надішли зіпсовану версію в групу.","Усі вгадують у чаті.","Потім надішли відповідь. Хто помилився — платить."],"micErr":"Немає доступу до мікрофона. Сторінці потрібна справжня https-адреса.","shareDist":"Що я сказав? 👀","shareOrig":"Відповідь 🎤","fx":{"shuffle":["Нарізка","Порізано на шматки й перемішано."],"reverse":["Задом наперед","Усе з кінця."],"demon":["Демон","Низько, повільно, моторошно."],"robot":["Робот","Металево й покришено."],"random":["Випадково","Навіть ти не дізнаєшся."]}},"tr":{"how":"Nasıl çalışır?","h1a":"Bir şey söyle.<br>Biz bozarız.","lead1":"Arkadaşların ne dediğini tahmin etmeli.","tapRec":"Kaydetmek için dokun","tapStop":"Durdurmak için dokun","busy":"Bozuluyor…","tooShort":"Çok kısa. En az bir kelime.","cantRead":"Kayıt okunamadı. Tekrar dene.","recorded":"Kaydedildi","h1b":"Ne kadar bozuk?","listen":"Dinle","sendDist":"Bozuk halini sohbete gönder","redo":"Yeniden kaydet","sent":"Gönderildi.","h1c":"Tahmin etsinler.","lead3":"Sohbet saçmalıkla dolunca cevabı gönder.","sendOrig":"Cevabı gönder","again":"Yeni tur","howTitle":"Böyle çalışır.","gotit":"Anladım","steps":["Bir sesli mesaj kaydet. Bir cümle yeter.","Bozmamıza izin ver.","Bozuk halini gruba gönder.","Herkes sohbette tahmin eder.","Sonra cevabı gönder. Yanlış bilen öder."],"micErr":"Mikrofon erişimi yok. Bu sayfanın gerçek bir https adresine ihtiyacı var.","shareDist":"Ne dedim? 👀","shareOrig":"Cevap 🎤","fx":{"shuffle":["Doğranmış","Parçalara kesilip karıştırılmış."],"reverse":["Tersten","Her şey sondan başa."],"demon":["Şeytan","Kalın, yavaş, ürkütücü."],"robot":["Robot","Metalik ve ufalanmış."],"random":["Rastgele","Sen bile bilmeyeceksin."]}},"ar":{"how":"كيف يعمل؟","h1a":"قل شيئًا.<br>وسنخرّبه.","lead1":"على أصدقائك أن يخمّنوا ما قلته.","tapRec":"اضغط للتسجيل","tapStop":"اضغط للإيقاف","busy":"جارٍ التخريب…","tooShort":"قصير جدًا. كلمة واحدة على الأقل.","cantRead":"تعذّر قراءة التسجيل. حاول مجددًا.","recorded":"تم التسجيل","h1b":"كم تريده مخرّبًا؟","listen":"استمع","sendDist":"أرسل النسخة المخرّبة إلى المحادثة","redo":"سجّل مجددًا","sent":"تم الإرسال.","h1c":"دعهم يخمّنون.","lead3":"عندما تمتلئ المحادثة بالهراء، أرسل الجواب.","sendOrig":"أرسل الجواب","again":"جولة جديدة","howTitle":"هكذا يعمل.","gotit":"فهمت","steps":["سجّل رسالة صوتية. جملة واحدة تكفي.","دعنا نخرّبها.","أرسل النسخة المخرّبة إلى المجموعة.","الجميع يخمّن في المحادثة.","أرسل الجواب بعدها. من أخطأ يدفع."],"micErr":"لا يمكن الوصول إلى الميكروفون. تحتاج هذه الصفحة إلى عنوان https حقيقي.","shareDist":"ماذا قلت؟ 👀","shareOrig":"الجواب 🎤","fx":{"shuffle":["مقطّع","مقطوع إلى أجزاء ومخلوط."],"reverse":["بالمقلوب","كل شيء من النهاية."],"demon":["شيطان","عميق، بطيء، مخيف."],"robot":["روبوت","معدني ومفتّت."],"random":["عشوائي","حتى أنت لن تعرف."]}},"fa":{"how":"چطور کار می‌کند؟","h1a":"یه چیزی بگو.<br>خرابش می‌کنیم.","lead1":"دوستانت باید حدس بزنند چی گفتی.","tapRec":"برای ضبط بزن","tapStop":"برای توقف بزن","busy":"در حال خراب کردن…","tooShort":"خیلی کوتاهه. حداقل یک کلمه.","cantRead":"ضبط خوانده نشد. دوباره.","recorded":"ضبط شد","h1b":"چقدر خراب؟","listen":"گوش کن","sendDist":"نسخهٔ خراب رو به چت بفرست","redo":"دوباره ضبط کن","sent":"فرستاده شد.","h1c":"بذار حدس بزنن.","lead3":"وقتی چت پر از چرت‌وپرت شد، جواب رو بفرست.","sendOrig":"جواب رو بفرست","again":"دور جدید","howTitle":"این‌طوری کار می‌کنه.","gotit":"فهمیدم","steps":["یه پیام صوتی ضبط کن. یه جمله کافیه.","بذار خرابش کنیم.","نسخهٔ خراب رو به گروه بفرست.","همه توی چت حدس می‌زنن.","بعدش جواب رو بفرست. هر کی اشتباه گفت، حساب می‌کنه."],"micErr":"دسترسی به میکروفون نیست. این صفحه به یک آدرس https واقعی نیاز داره.","shareDist":"چی گفتم؟ 👀","shareOrig":"جواب 🎤","fx":{"shuffle":["تکه‌تکه","بریده و قاطی شده."],"reverse":["برعکس","همه‌چیز از آخر."],"demon":["شیطان","بم، آهسته، ترسناک."],"robot":["ربات","فلزی و خرد شده."],"random":["تصادفی","حتی خودت هم نمی‌فهمی."]}},"ur":{"how":"یہ کیسے کام کرتا ہے؟","h1a":"کچھ بولو۔<br>ہم اسے بگاڑ دیں گے۔","lead1":"تمہارے دوستوں کو اندازہ لگانا ہے کہ تم نے کیا کہا۔","tapRec":"ریکارڈ کے لیے ٹیپ کریں","tapStop":"روکنے کے لیے ٹیپ کریں","busy":"بگاڑا جا رہا ہے…","tooShort":"بہت مختصر۔ کم از کم ایک لفظ۔","cantRead":"ریکارڈنگ پڑھی نہ جا سکی۔ دوبارہ۔","recorded":"ریکارڈ ہو گیا","h1b":"کتنا بگاڑنا ہے؟","listen":"سنیں","sendDist":"بگڑا ہوا ورژن چیٹ میں بھیجیں","redo":"دوبارہ ریکارڈ کریں","sent":"بھیج دیا۔","h1c":"انہیں اندازہ لگانے دو۔","lead3":"جب چیٹ بکواس سے بھر جائے تو جواب بھیجو۔","sendOrig":"جواب بھیجیں","again":"نیا راؤنڈ","howTitle":"یہ ایسے کام کرتا ہے۔","gotit":"سمجھ گیا","steps":["ایک وائس نوٹ ریکارڈ کرو۔ ایک جملہ کافی ہے۔","ہمیں اسے بگاڑنے دو۔","بگڑا ہوا ورژن گروپ میں بھیجو۔","سب چیٹ میں اندازہ لگاتے ہیں۔","بعد میں جواب بھیجو۔ جو غلط ہو، وہ ادا کرے۔"],"micErr":"مائیکروفون تک رسائی نہیں۔ اس صفحے کو اصل https پتہ چاہیے۔","shareDist":"میں نے کیا کہا؟ 👀","shareOrig":"جواب 🎤","fx":{"shuffle":["کٹا ہوا","ٹکڑوں میں کاٹ کر ملا دیا۔"],"reverse":["الٹا","سب کچھ آخر سے۔"],"demon":["شیطان","بھاری، سست، خوفناک۔"],"robot":["روبوٹ","دھاتی اور چورا۔"],"random":["بے ترتیب","تمہیں بھی پتہ نہیں چلے گا۔"]}},"hi":{"how":"यह कैसे काम करता है?","h1a":"कुछ बोलो।<br>हम इसे बिगाड़ देंगे।","lead1":"तुम्हारे दोस्तों को अंदाज़ा लगाना है कि तुमने क्या कहा।","tapRec":"रिकॉर्ड करने के लिए टैप करें","tapStop":"रोकने के लिए टैप करें","busy":"बिगाड़ रहे हैं…","tooShort":"बहुत छोटा। कम से कम एक शब्द।","cantRead":"रिकॉर्डिंग पढ़ नहीं पाए। फिर से।","recorded":"रिकॉर्ड हुआ","h1b":"कितना बिगाड़ें?","listen":"सुनें","sendDist":"बिगड़ा हुआ वर्ज़न चैट में भेजें","redo":"फिर से रिकॉर्ड करें","sent":"भेज दिया।","h1c":"उन्हें अंदाज़ा लगाने दो।","lead3":"जब चैट बकवास से भर जाए, तो जवाब भेजो।","sendOrig":"जवाब भेजें","again":"नया राउंड","howTitle":"यह ऐसे काम करता है।","gotit":"समझ गया","steps":["एक वॉइस नोट रिकॉर्ड करो। एक वाक्य काफ़ी है।","हमें इसे बिगाड़ने दो।","बिगड़ा हुआ वर्ज़न ग्रुप में भेजो।","सब चैट में अंदाज़ा लगाते हैं।","बाद में जवाब भेजो। जो ग़लत हो, वो खिलाए।"],"micErr":"माइक्रोफ़ोन एक्सेस नहीं। इस पेज को असली https पता चाहिए।","shareDist":"मैंने क्या कहा? 👀","shareOrig":"जवाब 🎤","fx":{"shuffle":["कटा हुआ","टुकड़ों में काटकर मिलाया।"],"reverse":["उल्टा","सब कुछ आख़िर से।"],"demon":["दानव","भारी, धीमा, डरावना।"],"robot":["रोबोट","धातु जैसा और चूरा।"],"random":["रैंडम","तुम्हें भी पता नहीं चलेगा।"]}},"bn":{"how":"এটা কীভাবে কাজ করে?","h1a":"কিছু বলো।<br>আমরা নষ্ট করে দেব।","lead1":"তোমার বন্ধুদের আন্দাজ করতে হবে তুমি কী বলেছ।","tapRec":"রেকর্ড করতে ট্যাপ করো","tapStop":"থামাতে ট্যাপ করো","busy":"নষ্ট করছি…","tooShort":"খুব ছোট। অন্তত একটা শব্দ।","cantRead":"রেকর্ডিং পড়া গেল না। আবার।","recorded":"রেকর্ড হয়েছে","h1b":"কতটা নষ্ট?","listen":"শোনো","sendDist":"নষ্ট ভার্সন চ্যাটে পাঠাও","redo":"আবার রেকর্ড করো","sent":"পাঠানো হয়েছে।","h1c":"ওদের আন্দাজ করতে দাও।","lead3":"চ্যাট আজেবাজে কথায় ভরে গেলে উত্তর পাঠাও।","sendOrig":"উত্তর পাঠাও","again":"নতুন রাউন্ড","howTitle":"এভাবে কাজ করে।","gotit":"বুঝেছি","steps":["একটা ভয়েস নোট রেকর্ড করো। এক বাক্যই যথেষ্ট।","আমাদের নষ্ট করতে দাও।","নষ্ট ভার্সন গ্রুপে পাঠাও।","সবাই চ্যাটে আন্দাজ করে।","পরে উত্তর পাঠাও। যে ভুল করবে, সে খাওয়াবে।"],"micErr":"মাইক্রোফোন অ্যাক্সেস নেই। এই পেজের আসল https ঠিকানা দরকার।","shareDist":"আমি কী বলেছি? 👀","shareOrig":"উত্তর 🎤","fx":{"shuffle":["কাটা","টুকরো করে মেশানো।"],"reverse":["উল্টো","সব শেষ থেকে।"],"demon":["দানব","গভীর, ধীর, ভয়ংকর।"],"robot":["রোবট","ধাতব আর গুঁড়ো।"],"random":["এলোমেলো","তুমিও জানবে না কোনটা।"]}},"ta":{"how":"இது எப்படி வேலை செய்கிறது?","h1a":"ஏதாவது சொல்லு.<br>நாங்க அதைக் கெடுத்திடுவோம்.","lead1":"நீ என்ன சொன்னன்னு உன் நண்பர்கள் யூகிக்கணும்.","tapRec":"பதிவு செய்ய தட்டவும்","tapStop":"நிறுத்த தட்டவும்","busy":"கெடுக்கிறோம்…","tooShort":"ரொம்ப குறைவு. குறைந்தது ஒரு வார்த்தை.","cantRead":"பதிவை படிக்க முடியல. மறுபடியும்.","recorded":"பதிவானது","h1b":"எவ்வளவு கெடுக்கணும்?","listen":"கேளு","sendDist":"கெட்ட வெர்ஷனை சாட்டுக்கு அனுப்பு","redo":"மறுபடியும் பதிவு செய்","sent":"அனுப்பியாச்சு.","h1c":"அவங்க யூகிக்கட்டும்.","lead3":"சாட் முழுக்க உளறல் நிறைஞ்சதும் பதிலை அனுப்பு.","sendOrig":"பதிலை அனுப்பு","again":"புது சுற்று","howTitle":"இப்படித்தான் வேலை செய்யும்.","gotit":"புரிஞ்சது","steps":["ஒரு குரல் குறிப்பை பதிவு செய். ஒரு வாக்கியம் போதும்.","நாங்க கெடுக்க விடு.","கெட்ட வெர்ஷனை குரூப்புக்கு அனுப்பு.","எல்லாரும் சாட்டில் யூகிப்பாங்க.","பிறகு பதிலை அனுப்பு. தப்பா சொன்னவங்க செலவு."],"micErr":"மைக்ரோஃபோன் அணுகல் இல்லை. இந்தப் பக்கத்துக்கு உண்மையான https முகவரி தேவை.","shareDist":"நான் என்ன சொன்னேன்? 👀","shareOrig":"பதில் 🎤","fx":{"shuffle":["துண்டுதுண்டா","துண்டாக்கி கலக்கியது."],"reverse":["பின்னால","எல்லாம் கடைசியிலிருந்து."],"demon":["பேய்","கனமா, மெதுவா, பயமா."],"robot":["ரோபோ","உலோகமா, பொடியா."],"random":["ரேண்டம்","உனக்கே தெரியாது எது."]}},"id":{"how":"Cara kerjanya?","h1a":"Bilang sesuatu.<br>Kami rusak.","lead1":"Temanmu harus menebak apa yang kamu bilang.","tapRec":"Ketuk untuk merekam","tapStop":"Ketuk untuk berhenti","busy":"Merusak…","tooShort":"Terlalu pendek. Minimal satu kata.","cantRead":"Rekaman tidak terbaca. Coba lagi.","recorded":"Terekam","h1b":"Seberapa rusak?","listen":"Dengar","sendDist":"Kirim versi rusak ke chat","redo":"Rekam ulang","sent":"Terkirim.","h1c":"Biar mereka nebak.","lead3":"Kalau chat sudah penuh omong kosong, kirim jawabannya.","sendOrig":"Kirim jawaban","again":"Ronde baru","howTitle":"Begini caranya.","gotit":"Paham","steps":["Rekam pesan suara. Satu kalimat cukup.","Biar kami rusak.","Kirim versi rusak ke grup.","Semua nebak di chat.","Kirim jawabannya setelah itu. Yang salah, bayar."],"micErr":"Tidak ada akses mikrofon. Halaman ini butuh alamat https asli.","shareDist":"Aku bilang apa? 👀","shareOrig":"Jawabannya 🎤","fx":{"shuffle":["Dicincang","Dipotong-potong, diacak."],"reverse":["Terbalik","Semua dari belakang."],"demon":["Iblis","Berat, lambat, seram."],"robot":["Robot","Metalik dan remuk."],"random":["Acak","Kamu pun nggak tahu yang mana."]}},"ms":{"how":"Macam mana ia berfungsi?","h1a":"Cakap sesuatu.<br>Kami rosakkan.","lead1":"Kawan-kawan kau kena teka apa yang kau cakap.","tapRec":"Ketik untuk rakam","tapStop":"Ketik untuk berhenti","busy":"Merosakkan…","tooShort":"Terlalu pendek. Sekurang-kurangnya satu perkataan.","cantRead":"Rakaman tak dapat dibaca. Cuba lagi.","recorded":"Dirakam","h1b":"Rosak macam mana?","listen":"Dengar","sendDist":"Hantar versi rosak ke chat","redo":"Rakam semula","sent":"Dihantar.","h1c":"Biar mereka teka.","lead3":"Bila chat dah penuh dengan merepek, hantar jawapannya.","sendOrig":"Hantar jawapan","again":"Pusingan baru","howTitle":"Macam ni caranya.","gotit":"Faham","steps":["Rakam mesej suara. Satu ayat cukup.","Biar kami rosakkan.","Hantar versi rosak ke kumpulan.","Semua teka dalam chat.","Hantar jawapan selepas itu. Yang salah, bayar."],"micErr":"Tiada akses mikrofon. Halaman ini perlukan alamat https sebenar.","shareDist":"Aku cakap apa? 👀","shareOrig":"Jawapannya 🎤","fx":{"shuffle":["Dicincang","Dipotong-potong, dikacau."],"reverse":["Terbalik","Semua dari belakang."],"demon":["Syaitan","Berat, perlahan, seram."],"robot":["Robot","Metalik dan hancur."],"random":["Rawak","Kau pun tak tahu yang mana."]}},"vi":{"how":"Hoạt động thế nào?","h1a":"Nói gì đi.<br>Tụi mình phá nó.","lead1":"Bạn bè phải đoán bạn đã nói gì.","tapRec":"Chạm để ghi âm","tapStop":"Chạm để dừng","busy":"Đang phá…","tooShort":"Ngắn quá. Ít nhất một từ.","cantRead":"Không đọc được bản ghi. Thử lại.","recorded":"Đã ghi","h1b":"Phá cỡ nào?","listen":"Nghe","sendDist":"Gửi bản bị phá vào nhóm","redo":"Ghi lại","sent":"Đã gửi.","h1c":"Để họ đoán.","lead3":"Khi nhóm đầy chuyện nhảm, gửi đáp án.","sendOrig":"Gửi đáp án","again":"Vòng mới","howTitle":"Cách chơi.","gotit":"Hiểu rồi","steps":["Ghi một tin nhắn thoại. Một câu là đủ.","Để tụi mình phá nó.","Gửi bản bị phá vào nhóm.","Mọi người đoán trong nhóm.","Gửi đáp án sau. Ai đoán sai thì trả tiền."],"micErr":"Không có quyền micro. Trang này cần một địa chỉ https thật.","shareDist":"Mình nói gì? 👀","shareOrig":"Đáp án 🎤","fx":{"shuffle":["Băm nhỏ","Cắt thành mảnh, xáo trộn."],"reverse":["Ngược","Toàn bộ từ cuối lên."],"demon":["Quỷ","Trầm, chậm, rợn người."],"robot":["Robot","Kim loại và vụn."],"random":["Ngẫu nhiên","Chính bạn cũng không biết."]}},"th":{"how":"ใช้ยังไง?","h1a":"พูดอะไรสักอย่าง<br>เราจะทำมันพัง","lead1":"เพื่อนต้องเดาว่าคุณพูดอะไร","tapRec":"แตะเพื่ออัด","tapStop":"แตะเพื่อหยุด","busy":"กำลังทำพัง…","tooShort":"สั้นไป อย่างน้อยหนึ่งคำ","cantRead":"อ่านไฟล์เสียงไม่ได้ ลองใหม่","recorded":"อัดแล้ว","h1b":"พังแค่ไหน?","listen":"ฟัง","sendDist":"ส่งเวอร์ชันพังเข้ากลุ่ม","redo":"อัดใหม่","sent":"ส่งแล้ว","h1c":"ให้พวกเขาเดา","lead3":"พอในกลุ่มเต็มไปด้วยเรื่องเพ้อเจ้อ ค่อยส่งเฉลย","sendOrig":"ส่งเฉลย","again":"รอบใหม่","howTitle":"วิธีเล่น","gotit":"เข้าใจแล้ว","steps":["อัดข้อความเสียง ประโยคเดียวพอ","ให้เราทำมันพัง","ส่งเวอร์ชันพังเข้ากลุ่ม","ทุกคนเดาในแชท","ส่งเฉลยทีหลัง ใครเดาผิด จ่าย"],"micErr":"เข้าถึงไมค์ไม่ได้ หน้านี้ต้องใช้ที่อยู่ https จริง","shareDist":"ฉันพูดว่าอะไร? 👀","shareOrig":"เฉลย 🎤","fx":{"shuffle":["สับ","หั่นเป็นชิ้น แล้วสลับ"],"reverse":["ย้อนกลับ","ทั้งหมดจากท้ายมาหน้า"],"demon":["ปีศาจ","ทุ้ม ช้า น่าขนลุก"],"robot":["หุ่นยนต์","เสียงโลหะ แตกเป็นเศษ"],"random":["สุ่ม","แม้แต่คุณก็ไม่รู้"]}},"zh":{"how":"怎么玩？","h1a":"说句话。<br>我们把它搞坏。","lead1":"你的朋友得猜你说了什么。","tapRec":"点击录音","tapStop":"点击停止","busy":"搞坏中…","tooShort":"太短了。至少一个词。","cantRead":"无法读取录音。再试一次。","recorded":"已录音","h1b":"坏到什么程度？","listen":"听听","sendDist":"把坏掉的版本发到群里","redo":"重新录","sent":"已发送。","h1c":"让他们猜。","lead3":"等群里胡说八道够多了，再发答案。","sendOrig":"发答案","again":"新一轮","howTitle":"玩法。","gotit":"明白了","steps":["录一条语音。一句话就够。","让我们把它搞坏。","把坏掉的版本发到群里。","大家在群里猜。","之后发答案。猜错的请客。"],"micErr":"无法访问麦克风。此页面需要真实的 https 地址。","shareDist":"我说了啥？👀","shareOrig":"答案 🎤","fx":{"shuffle":["切碎","切成碎片，重新打乱。"],"reverse":["倒放","整段从后往前。"],"demon":["恶魔","低沉、缓慢、瘆人。"],"robot":["机器人","金属感，碎裂。"],"random":["随机","连你自己都不知道。"]}},"ja":{"how":"遊び方は？","h1a":"なにか言って。<br>壊してあげる。","lead1":"友だちが何を言ったか当てるゲーム。","tapRec":"タップで録音","tapStop":"タップで停止","busy":"壊し中…","tooShort":"短すぎ。最低ひと言。","cantRead":"録音を読み込めなかった。もう一度。","recorded":"録音済み","h1b":"どれくらい壊す？","listen":"聞く","sendDist":"壊れたやつをグループに送る","redo":"録り直す","sent":"送信済み。","h1c":"当てさせよう。","lead3":"グループがデタラメだらけになったら、答えを送ろう。","sendOrig":"答えを送る","again":"次のラウンド","howTitle":"遊び方。","gotit":"わかった","steps":["ボイスメッセージを録音。ひと言でOK。","壊させて。","壊れたやつをグループに送る。","みんながチャットで当てる。","あとで答えを送る。外した人のおごり。"],"micErr":"マイクにアクセスできない。このページには本物の https アドレスが必要。","shareDist":"なんて言った？👀","shareOrig":"答え 🎤","fx":{"shuffle":["ぶつ切り","細切れにしてシャッフル。"],"reverse":["逆再生","全部うしろから。"],"demon":["悪魔","低く、遅く、不気味。"],"robot":["ロボット","金属っぽく、ボロボロ。"],"random":["ランダム","自分でもわからない。"]}},"ko":{"how":"어떻게 하는 거야?","h1a":"아무 말이나 해.<br>우리가 망가뜨릴게.","lead1":"친구들이 네가 뭐라고 했는지 맞혀야 해.","tapRec":"탭해서 녹음","tapStop":"탭해서 정지","busy":"망가뜨리는 중…","tooShort":"너무 짧아. 최소 한 단어.","cantRead":"녹음을 읽을 수 없어. 다시.","recorded":"녹음됨","h1b":"얼마나 망가뜨릴까?","listen":"들어보기","sendDist":"망가진 버전 단톡방에 보내기","redo":"다시 녹음","sent":"보냈어.","h1c":"맞혀보라고 해.","lead3":"단톡방이 헛소리로 가득 차면 정답을 보내.","sendOrig":"정답 보내기","again":"새 라운드","howTitle":"이렇게 하는 거야.","gotit":"알겠어","steps":["음성 메시지 녹음. 한 문장이면 충분해.","우리가 망가뜨리게 해.","망가진 버전을 단톡방에 보내.","다들 채팅에서 맞혀.","나중에 정답을 보내. 틀린 사람이 쏜다."],"micErr":"마이크 접근 불가. 이 페이지는 실제 https 주소가 필요해.","shareDist":"내가 뭐라고 했게? 👀","shareOrig":"정답 🎤","fx":{"shuffle":["조각내기","잘게 잘라 섞음."],"reverse":["거꾸로","전부 뒤에서부터."],"demon":["악마","낮고, 느리고, 으스스."],"robot":["로봇","금속성에 바스라짐."],"random":["랜덤","너도 뭔지 몰라."]}},"sw":{"how":"Inafanyaje kazi?","h1a":"Sema kitu.<br>Tutakiharibu.","lead1":"Marafiki zako wanapaswa kukisia ulichosema.","tapRec":"Gusa kurekodi","tapStop":"Gusa kusimamisha","busy":"Tunaharibu…","tooShort":"Fupi sana. Angalau neno moja.","cantRead":"Rekodi haikusomeka. Jaribu tena.","recorded":"Imerekodiwa","h1b":"Iharibike kiasi gani?","listen":"Sikiliza","sendDist":"Tuma toleo lililoharibika kwenye chat","redo":"Rekodi tena","sent":"Imetumwa.","h1c":"Waache wakisie.","lead3":"Chat ikijaa upuuzi, tuma jibu.","sendOrig":"Tuma jibu","again":"Raundi mpya","howTitle":"Hivi ndivyo inavyofanya kazi.","gotit":"Nimeelewa","steps":["Rekodi ujumbe wa sauti. Sentensi moja inatosha.","Turuhusu tuiharibu.","Tuma toleo lililoharibika kwenye kundi.","Wote wanakisia kwenye chat.","Tuma jibu baadaye. Aliyekosea analipa."],"micErr":"Hakuna ufikiaji wa kipaza sauti. Ukurasa huu unahitaji anwani halisi ya https.","shareDist":"Nilisema nini? 👀","shareOrig":"Jibu 🎤","fx":{"shuffle":["Imekatwakatwa","Imekatwa vipande na kuchanganywa."],"reverse":["Kinyume","Yote kuanzia mwisho."],"demon":["Pepo","Nzito, polepole, ya kutisha."],"robot":["Roboti","Ya chuma na iliyovunjika."],"random":["Bila mpangilio","Hata wewe hutajua."]}}};
+const RTL = ['ar','fa','ur'];
+const LANG = (() => {
+  const cands = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || 'en']);
+  for (const c of cands) { const k = String(c).toLowerCase().split(/[-_]/)[0]; if (STR[k]) return k; }
+  return 'en';
+})();
+const T = STR[LANG];
+document.documentElement.lang = LANG;
+document.documentElement.dir = RTL.includes(LANG) ? 'rtl' : 'ltr';
+document.querySelectorAll('[data-i18n]').forEach(el => { el.innerHTML = T[el.dataset.i18n]; });
+document.getElementById('howList').innerHTML = T.steps.map(x => '<li>' + x + '</li>').join('');
+document.getElementById('recHint').textContent = T.tapRec;
+
+/* ---------- state ---------- */
+let mediaRecorder = null, chunks = [], stream = null;
+let origBlob = null, origBuffer = null, distBlob = null, distBuffer = null;
+let currentFx = 'shuffle';
+let ac = null;
+let recStart = 0, recTimer = null;
+
+const $ = id => document.getElementById(id);
+const fmt = n => n.toLocaleString(navigator.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+const FX = ['shuffle','reverse','demon','robot','random'].map(id => ({ id, name: T.fx[id][0], desc: T.fx[id][1] }));
+
+/* ---------- ui helpers ---------- */
+function show(id) { ['s1','s2','s3'].forEach(s => $(s).classList.toggle('hidden', s !== id)); }
+function ctx() { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); return ac; }
+
+/* ---------- how-to ---------- */
+$('howOpen').onclick = () => $('howSheet').dataset.open = 'true';
+$('howClose').onclick = () => $('howSheet').dataset.open = 'false';
+
+/* ---------- recording ---------- */
+$('recBtn').onclick = async () => {
+  if (mediaRecorder && mediaRecorder.state === 'recording') { stopRec(); return; }
+  await startRec();
+};
+
+async function startRec() {
+  $('micNotice').classList.add('hidden');
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (e) {
+    $('micNotice').textContent = T.micErr;
+    $('micNotice').classList.remove('hidden');
+    return;
+  }
+  ctx();
+  chunks = [];
+  const mime = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm'].find(m => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) || '';
+  mediaRecorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+  mediaRecorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+  mediaRecorder.onstop = onRecStop;
+  mediaRecorder.start();
+  recStart = Date.now();
+  $('recBtn').dataset.on = 'true';
+  recTimer = setInterval(() => {
+    const s = (Date.now() - recStart) / 1000;
+    $('recHint').textContent = fmt(s) + ' s · ' + T.tapStop;
+    if (s >= 12) stopRec();
+  }, 100);
+}
+
+function stopRec() {
+  clearInterval(recTimer);
+  $('recBtn').dataset.on = 'false';
+  $('recHint').textContent = T.busy;
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+  if (stream) stream.getTracks().forEach(t => t.stop());
+}
+
+async function onRecStop() {
+  origBlob = new Blob(chunks, { type: mediaRecorder.mimeType || 'audio/mp4' });
+  const arr = await origBlob.arrayBuffer();
+  try {
+    origBuffer = await ctx().decodeAudioData(arr.slice(0));
+  } catch (e) {
+    $('recHint').textContent = T.cantRead;
+    return;
+  }
+  if (origBuffer.duration < 0.4) {
+    $('recHint').textContent = T.tooShort;
+    return;
+  }
+  $('recHint').textContent = T.tapRec;
+  $('s2tag').textContent = T.recorded + ' · ' + fmt(origBuffer.duration) + ' s';
+  buildEffects();
+  await applyFx(currentFx);
+  show('s2');
+}
+
+/* ---------- effects ---------- */
+function buildEffects() {
+  const el = $('effects');
+  el.innerHTML = '';
+  FX.forEach(f => {
+    const b = document.createElement('button');
+    b.className = 'fx';
+    b.setAttribute('aria-pressed', f.id === currentFx);
+    b.innerHTML = '<b>' + f.name + '</b><span>' + f.desc + '</span>';
+    b.onclick = async () => { currentFx = f.id; buildEffects(); await applyFx(f.id); };
+    el.appendChild(b);
+  });
+}
+
+function mono(buf) {
+  const out = new Float32Array(buf.length);
+  for (let c = 0; c < buf.numberOfChannels; c++) {
+    const d = buf.getChannelData(c);
+    for (let i = 0; i < d.length; i++) out[i] += d[i] / buf.numberOfChannels;
+  }
+  return out;
+}
+
+function fxShuffle(x, sr) {
+  const chunk = Math.floor(sr * 0.22);
+  const pieces = [];
+  for (let i = 0; i < x.length; i += chunk) pieces.push(x.subarray(i, Math.min(i + chunk, x.length)));
+  // keep a few pieces in place so it stays half-recognisable
+  for (let i = pieces.length - 1; i > 0; i--) {
+    if (Math.random() < 0.7) { const j = Math.floor(Math.random() * (i + 1)); [pieces[i], pieces[j]] = [pieces[j], pieces[i]]; }
+  }
+  const out = new Float32Array(x.length);
+  let p = 0;
+  const fade = Math.floor(sr * 0.008);
+  pieces.forEach(pc => {
+    for (let i = 0; i < pc.length; i++) {
+      let g = 1;
+      if (i < fade) g = i / fade; else if (i > pc.length - fade) g = (pc.length - i) / fade;
+      out[p + i] = pc[i] * g;
+    }
+    p += pc.length;
+  });
+  return { data: out, rate: sr };
+}
+
+function fxReverse(x, sr) { return { data: Float32Array.from(x).reverse(), rate: sr }; }
+
+function fxDemon(x, sr) {
+  // resample slower = deeper
+  const f = 0.62;
+  const n = Math.floor(x.length / f);
+  const out = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const s = i * f, i0 = Math.floor(s), t = s - i0;
+    out[i] = (x[i0] || 0) * (1 - t) + (x[i0 + 1] || 0) * t;
+  }
+  return { data: out, rate: sr };
+}
+
+function fxRobot(x, sr) {
+  const out = new Float32Array(x.length);
+  const f = 38; // ring-mod frequency
+  const hold = 6; // bitcrush-ish sample hold
+  let last = 0;
+  for (let i = 0; i < x.length; i++) {
+    if (i % hold === 0) last = Math.round(x[i] * 12) / 12;
+    out[i] = last * Math.sin(2 * Math.PI * f * i / sr) * 1.6;
+  }
+  return { data: out, rate: sr };
+}
+
+async function applyFx(id) {
+  let fx = id;
+  if (fx === 'random') fx = ['shuffle', 'reverse', 'demon', 'robot'][Math.floor(Math.random() * 4)];
+  const sr = origBuffer.sampleRate;
+  const x = mono(origBuffer);
+  const r = ({ shuffle: fxShuffle, reverse: fxReverse, demon: fxDemon, robot: fxRobot })[fx](x, sr);
+  // normalise
+  let peak = 0; for (let i = 0; i < r.data.length; i++) peak = Math.max(peak, Math.abs(r.data[i]));
+  if (peak > 0) { const g = 0.9 / peak; for (let i = 0; i < r.data.length; i++) r.data[i] *= g; }
+  distBuffer = ctx().createBuffer(1, r.data.length, r.rate);
+  distBuffer.copyToChannel(r.data, 0);
+  distBlob = toWav(r.data, r.rate);
+  drawWaves(r.data);
+}
+
+function drawWaves(d) {
+  const el = $('waves');
+  el.innerHTML = '';
+  const bars = 40, step = Math.floor(d.length / bars);
+  for (let b = 0; b < bars; b++) {
+    let m = 0;
+    for (let i = b * step; i < (b + 1) * step; i += 8) m = Math.max(m, Math.abs(d[i] || 0));
+    const i = document.createElement('i');
+    i.style.height = Math.max(6, m * 100) + '%';
+    el.appendChild(i);
+  }
+}
+
+/* ---------- playback ---------- */
+let playing = null;
+function play(buf) {
+  if (playing) { try { playing.stop(); } catch {} }
+  const src = ctx().createBufferSource();
+  src.buffer = buf; src.connect(ac.destination); src.start();
+  playing = src;
+}
+$('previewBtn').onclick = () => play(distBuffer);
+
+/* ---------- wav encoder ---------- */
+function toWav(data, rate) {
+  const buf = new ArrayBuffer(44 + data.length * 2);
+  const v = new DataView(buf);
+  const w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + data.length * 2, true); w(8, 'WAVE');
+  w(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  w(36, 'data'); v.setUint32(40, data.length * 2, true);
+  for (let i = 0; i < data.length; i++) v.setInt16(44 + i * 2, Math.max(-1, Math.min(1, data[i])) * 0x7FFF, true);
+  return new Blob([buf], { type: 'audio/wav' });
+}
+
+/* ---------- sharing ---------- */
+async function shareBlob(blob, name, text) {
+  const file = new File([blob], name, { type: blob.type });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], text }); return true; } catch (e) { return false; }
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  return true;
+}
+
+$('shareDistBtn').onclick = async () => {
+  const ok = await shareBlob(distBlob, 'garble.wav', T.shareDist);
+  if (ok) show('s3');
+};
+$('shareOrigBtn').onclick = async () => {
+  const ext = (origBlob.type.includes('mp4') ? 'm4a' : 'webm');
+  await shareBlob(origBlob, 'answer.' + ext, T.shareOrig);
+};
+$('redoBtn').onclick = () => show('s1');
+$('againBtn').onclick = () => { show('s1'); };
+</script>
