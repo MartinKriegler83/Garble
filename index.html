@@ -145,7 +145,7 @@
 
 <div class="app">
   <div class="top">
-    <div class="wordmark">Garble</div>
+    <div class="wordmark">Garble <span style="font-size:12px;font-weight:500;opacity:.6">v3</span></div>
     <button class="how-btn" id="howOpen" data-i18n="how"></button>
   </div>
 
@@ -184,6 +184,7 @@
     </div>
   </section>
 </div>
+<div id="err" style="position:fixed;left:12px;right:12px;bottom:12px;background:#0E1240;color:#fff;padding:10px 12px;border-radius:10px;font-size:13px;display:none;z-index:20;white-space:pre-wrap"></div>
 
 <div class="sheet" id="howSheet" data-open="false" role="dialog" aria-label="How Garble works">
   <h2 data-i18n="howTitle"></h2>
@@ -387,14 +388,40 @@ function drawWaves(d) {
 }
 
 /* ---------- playback ---------- */
-let playing = null;
-function play(buf) {
-  if (playing) { try { playing.stop(); } catch {} }
-  const src = ctx().createBufferSource();
-  src.buffer = buf; src.connect(ac.destination); src.start();
-  playing = src;
+function showErr(msg) {
+  const e = document.getElementById('err');
+  if (!e) return;
+  e.textContent = msg; e.style.display = 'block';
+  clearTimeout(e._h); e._h = setTimeout(() => e.style.display = 'none', 6000);
 }
-$('previewBtn').onclick = () => play(distBuffer);
+window.addEventListener('error', ev => showErr('Fehler: ' + (ev.message || ev.error)));
+window.addEventListener('unhandledrejection', ev => showErr('Fehler: ' + (ev.reason && ev.reason.message || ev.reason)));
+
+let player = null, playerUrl = null;
+function playBlob(blob) {
+  const btn = $('previewBtn');
+  if (!blob) { showErr('Keine verzerrte Aufnahme vorhanden.'); return; }
+  if (player) { try { player.pause(); } catch {} }
+  if (playerUrl) URL.revokeObjectURL(playerUrl);
+  playerUrl = URL.createObjectURL(blob);
+  player = new Audio();
+  player.setAttribute('playsinline', '');
+  player.src = playerUrl;
+  btn.textContent = '▶ …';
+  player.onended = () => { btn.textContent = T.listen; };
+  player.onerror = () => { btn.textContent = T.listen; showErr('Player-Fehler: ' + (player.error && player.error.code)); };
+  const p = player.play();
+  if (p && p.catch) p.catch(err => {
+    showErr('play() abgelehnt: ' + err.message + ' — versuche Web Audio');
+    try {
+      const src = ctx().createBufferSource();
+      src.buffer = distBuffer; src.connect(ac.destination);
+      src.onended = () => { btn.textContent = T.listen; };
+      src.start();
+    } catch (e2) { btn.textContent = T.listen; showErr('Web Audio: ' + e2.message); }
+  });
+}
+$('previewBtn').onclick = () => playBlob(distBlob);
 
 /* ---------- wav encoder ---------- */
 function toWav(data, rate) {
