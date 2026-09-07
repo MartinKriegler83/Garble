@@ -145,7 +145,7 @@
 
 <div class="app">
   <div class="top">
-    <div class="wordmark">Garble <span style="font-size:12px;font-weight:500;opacity:.6">v3</span></div>
+    <div class="wordmark">Garble <span style="font-size:12px;font-weight:500;opacity:.6">v4</span></div>
     <button class="how-btn" id="howOpen" data-i18n="how"></button>
   </div>
 
@@ -217,6 +217,9 @@ let ac = null;
 let recStart = 0, recTimer = null;
 
 const $ = id => document.getElementById(id);
+// iOS 17+: tell Safari which audio mode we want. Without this, after using the mic
+// iOS keeps routing output to the earpiece instead of the loudspeaker.
+function audioMode(mode) { try { if (navigator.audioSession) navigator.audioSession.type = mode; } catch {} }
 const fmt = n => n.toLocaleString(navigator.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 const FX = ['shuffle','reverse','demon','robot','random'].map(id => ({ id, name: T.fx[id][0], desc: T.fx[id][1] }));
@@ -237,6 +240,7 @@ $('recBtn').onclick = async () => {
 
 async function startRec() {
   $('micNotice').classList.add('hidden');
+  audioMode('play-and-record');
   try {
     stream = await navigator.mediaDevices.getUserMedia({ audio: true });
   } catch (e) {
@@ -265,7 +269,9 @@ function stopRec() {
   $('recBtn').dataset.on = 'false';
   $('recHint').textContent = T.busy;
   if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
-  if (stream) stream.getTracks().forEach(t => t.stop());
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  if (ac) { try { ac.close(); } catch {} ac = null; }
+  audioMode('playback');
 }
 
 async function onRecStop() {
@@ -401,6 +407,7 @@ let player = null, playerUrl = null;
 function playBlob(blob) {
   const btn = $('previewBtn');
   if (!blob) { showErr('Keine verzerrte Aufnahme vorhanden.'); return; }
+  audioMode('playback');
   if (player) { try { player.pause(); } catch {} }
   if (playerUrl) URL.revokeObjectURL(playerUrl);
   playerUrl = URL.createObjectURL(blob);
