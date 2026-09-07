@@ -457,6 +457,24 @@ function fxDrunk(x0, sr) {
   return { data: out.subarray(0, outPos + grain), rate: sr };
 }
 
+function fxDemon(x, sr) {
+  // resample slower = deeper
+  return { data: resample(x, 0.62), rate: sr };
+}
+
+function fxRobot(x0, sr) {
+  const x = resample(x0, 1.1); // a touch higher
+  const out = new Float32Array(x.length);
+  const f = 52; // ring-mod frequency
+  const hold = 5; // bitcrush-ish sample hold
+  let last = 0;
+  for (let i = 0; i < x.length; i++) {
+    if (i % hold === 0) last = Math.round(x[i] * 12) / 12;
+    out[i] = last * Math.sin(2 * Math.PI * f * i / sr) * 1.6;
+  }
+  return { data: out, rate: sr };
+}
+
 async function applyFx(id) {
   let fx = id;
   if (fx === 'random') { const pool = FX.map(f => f.id).filter(id => id !== 'random'); fx = pool[Math.floor(Math.random() * pool.length)]; }
