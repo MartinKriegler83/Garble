@@ -50,7 +50,8 @@
   .wordmark { font-size: 30px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
   .how-btn { background: none; border: none; padding: 6px 0; opacity: .8; font-size: 15px; text-decoration: underline; text-underline-offset: 3px; }
 
-  .stage { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 26px; padding: 30px 0; }
+  .stage { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 18px; padding: 18px 0; }
+  #s2 h1 { font-size: clamp(30px, 8vw, 40px); }
 
   h1 {
     font-size: clamp(38px, 11vw, 56px);
@@ -83,26 +84,27 @@
   .rec-hint { font-size: 15px; opacity: .8; min-height: 1.4em; font-variant-numeric: tabular-nums; }
 
   /* effects */
-  .effects { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .effects { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
   .fx {
     border: 2px solid rgba(255,255,255,.45);
     background: transparent;
-    border-radius: 16px;
-    padding: 14px 14px 12px;
-    text-align: start;
-    line-height: 1.2;
+    border-radius: 14px;
+    padding: 11px 6px;
+    text-align: center;
+    line-height: 1.15;
+    min-height: 46px;
   }
-  .fx b { display: block; font-weight: 800; font-size: 18px; letter-spacing: -0.02em; }
-  .fx span { font-size: 13.5px; opacity: .75; }
+  .fx b { display: block; font-weight: 800; font-size: 15px; letter-spacing: -0.02em; }
+  .fx span { display: none; }
   .fx[aria-pressed="true"] { background: var(--white); color: var(--blue-deep); border-color: var(--white); }
 
-  .waves { height: 54px; display: flex; align-items: center; gap: 3px; }
+  .waves { height: 40px; display: flex; align-items: center; gap: 3px; }
   .waves i { flex: 1; background: var(--white); border-radius: 2px; min-height: 3px; opacity: .9; }
 
   .actions { display: flex; flex-direction: column; gap: 10px; }
   .big {
     width: 100%;
-    padding: 18px 20px;
+    padding: 15px 18px;
     border-radius: 18px;
     border: none;
     background: var(--pink);
@@ -396,22 +398,39 @@ function fxRadio(x, sr) {
 }
 
 function fxStutter(x, sr) {
-  const chunk = Math.floor(sr * 0.14), onset = Math.floor(sr * 0.055);
-  const parts = [];
-  for (let i = 0; i < x.length; i += chunk) {
-    const pc = x.subarray(i, Math.min(i + chunk, x.length));
-    if (Math.random() < 0.25 && pc.length > onset) {
-      const reps = 2 + Math.floor(Math.random() * 3);
-      for (let r = 0; r < reps; r++) parts.push(pc.subarray(0, onset));
-    }
-    parts.push(pc);
+  const frame = Math.floor(sr * 0.02);
+  const nF = Math.floor(x.length / frame);
+  const rms = new Float32Array(nF);
+  for (let f = 0; f < nF; f++) { let e = 0; for (let i = 0; i < frame; i++) { const v = x[f * frame + i]; e += v * v; } rms[f] = Math.sqrt(e / frame); }
+  let peak = 0; for (let f = 0; f < nF; f++) peak = Math.max(peak, rms[f]);
+  // onsets: quiet -> loud within 3 frames
+  const onsets = [];
+  for (let f = 3; f < nF; f++) {
+    const before = Math.max(rms[f - 3], rms[f - 2]), now = rms[f];
+    if (now > peak * 0.25 && before < now * 0.35) { onsets.push(f * frame); f += 12; }
   }
-  let len = 0; parts.forEach(p => len += p.length);
+  const syl = Math.floor(sr * 0.11), gap = Math.floor(sr * 0.05), fade = Math.floor(sr * 0.006);
+  const parts = []; let cursor = 0;
+  onsets.forEach(pos => {
+    if (Math.random() > 0.45) return;
+    parts.push(x.subarray(cursor, pos));
+    const piece = x.subarray(pos, Math.min(pos + syl, x.length));
+    const reps = 3 + Math.floor(Math.random() * 3);
+    for (let r = 0; r < reps; r++) { parts.push(piece); parts.push(new Float32Array(gap)); }
+    cursor = pos;
+  });
+  parts.push(x.subarray(cursor));
+  if (parts.length === 1) { // no onsets found: fall back to a couple of forced stutters
+    const pos = Math.floor(x.length * 0.3), piece = x.subarray(pos, pos + syl);
+    parts.length = 0; parts.push(x.subarray(0, pos));
+    for (let r = 0; r < 4; r++) { parts.push(piece); parts.push(new Float32Array(gap)); }
+    parts.push(x.subarray(pos));
+  }
+  let len = 0; parts.forEach(pc => len += pc.length);
   const out = new Float32Array(len); let p = 0;
-  const fade = Math.floor(sr * 0.004);
   parts.forEach(pc => {
     for (let i = 0; i < pc.length; i++) {
-      let g = 1; if (i < fade) g = i / fade; else if (i > pc.length - fade) g = (pc.length - i) / fade;
+      let g = 1; if (pc.length > 2 * fade) { if (i < fade) g = i / fade; else if (i > pc.length - fade) g = (pc.length - i) / fade; }
       out[p + i] = pc[i] * g;
     }
     p += pc.length;
@@ -420,39 +439,22 @@ function fxStutter(x, sr) {
 }
 
 function fxDrunk(x0, sr) {
-  const x = lowpass(x0, sr, 2400, 1); // smear consonants = slur
-  const out = []; let pos = 0;
-  while (pos < x.length - 1) {
-    const i0 = Math.floor(pos), t = pos - i0;
-    out.push(x[i0] * (1 - t) + x[i0 + 1] * t);
-    const tt = out.length / sr;
-    pos += 0.86 + 0.03 * Math.sin(2 * Math.PI * 0.45 * tt) + 0.015 * Math.sin(2 * Math.PI * 1.7 * tt);
+  // slur: smear consonants, add a short mushy echo
+  const x = lowpass(x0, sr, 1900, 1);
+  const d = Math.floor(sr * 0.016);
+  for (let i = x.length - 1; i >= d; i--) x[i] = x[i] * 0.7 + x[i - d] * 0.45;
+  // time-stretch without pitch change: overlap-add grains, stretch wanders 1.1–1.45
+  const grain = Math.floor(sr * 0.05), hopOut = Math.floor(grain / 2);
+  const win = new Float32Array(grain); for (let i = 0; i < grain; i++) win[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / grain);
+  const out = new Float32Array(Math.floor(x.length * 1.6) + grain);
+  let inPos = 0, outPos = 0, stretch = 1.2;
+  while (inPos + grain < x.length) {
+    for (let i = 0; i < grain; i++) out[outPos + i] += x[Math.floor(inPos) + i] * win[i];
+    outPos += hopOut;
+    stretch += (Math.random() - 0.5) * 0.12; stretch = Math.max(1.08, Math.min(1.45, stretch));
+    inPos += hopOut / stretch;
   }
-  return { data: Float32Array.from(out), rate: sr };
-}
-function fxDemon(x, sr) {
-  // resample slower = deeper
-  const f = 0.62;
-  const n = Math.floor(x.length / f);
-  const out = new Float32Array(n);
-  for (let i = 0; i < n; i++) {
-    const s = i * f, i0 = Math.floor(s), t = s - i0;
-    out[i] = (x[i0] || 0) * (1 - t) + (x[i0 + 1] || 0) * t;
-  }
-  return { data: out, rate: sr };
-}
-
-function fxRobot(x0, sr) {
-  const x = resample(x0, 1.1); // a touch higher
-  const out = new Float32Array(x.length);
-  const f = 52; // ring-mod frequency
-  const hold = 5; // bitcrush-ish sample hold
-  let last = 0;
-  for (let i = 0; i < x.length; i++) {
-    if (i % hold === 0) last = Math.round(x[i] * 12) / 12;
-    out[i] = last * Math.sin(2 * Math.PI * f * i / sr) * 1.6;
-  }
-  return { data: out, rate: sr };
+  return { data: out.subarray(0, outPos + grain), rate: sr };
 }
 
 async function applyFx(id) {
